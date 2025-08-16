@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
 	supabase "github.com/supabase-community/supabase-go"
 )
 
+const version = "2.0.20" // ← ビルド時に書き換え可能
+
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: askr replace <file.askr>")
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: askr <command> [args...]")
 		os.Exit(1)
 	}
-
 	command := os.Args[1]
 	file := os.Args[2]
 
@@ -31,35 +34,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	if command == "replace" {
-		data, err := ioutil.ReadFile(file)
-		if err != nil {
-			fmt.Println("Error reading file:", err)
-			os.Exit(1)
-		}
-
-		// ファイル名 (拡張子 .askr を除去)
-		slug := file[:len(file)-5]
-
-		_, _, err = client.
-			From("wiki_pages").
-			Update(
-				map[string]interface{}{
-					"content": string(data),
-				},
-				"public",
-				"wiki_pages",
-			).
-			Eq("slug", slug).
-			Execute()
-
+	switch command {
+	case "replace":
+		err := replaceFile(client, file)
 		if err != nil {
 			fmt.Println("Replace failed:", err)
 			os.Exit(1)
 		}
-
-		fmt.Printf("✅ Replaced in public.wiki_pages where slug='%s'\n", slug)
-	} else {
+	case "version":
+		fmt.Println("askreditor version", version)
+	default:
 		fmt.Println("Unknown command:", command)
+		os.Exit(1)
 	}
+}
+
+func replaceFile(client *supabase.Client, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	slug := strings.TrimSuffix(filepath.Base(file), ".askr")
+
+	updates := map[string]interface{}{
+		"content": string(data),
+	}
+
+	_, _, err = client.
+		From("wiki_pages").
+		Update(updates, "public", "wiki_pages"). // <- Update は現在 interface{}, string, string の3引数
+		Eq("slug", slug).
+		Execute()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("✅ Replaced in public.wiki_pages where slug='%s'\n", slug)
+	return nil
 }
