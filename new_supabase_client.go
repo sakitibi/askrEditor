@@ -4,8 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/joho/godotenv"
 	supabase "github.com/supabase-community/supabase-go"
 )
+
+func init() {
+	// .env を読み込む（なければ無視）
+	_ = godotenv.Load()
+}
 
 func NewSupabaseClient() (*supabase.Client, error) {
 	supabaseUrl := os.Getenv("SUPABASE_URL")
