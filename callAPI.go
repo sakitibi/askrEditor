@@ -3,17 +3,20 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 )
 
 func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token string) (*http.Response, error) {
-	url := "http://localhost:3000/api/wiki/" + wikiSlug + "/" + pageSlug
+	// wikiSlug, pageSlug をURLに組み込む
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
 
-	var reqBody io.Reader
+	var reqBody *bytes.Reader
 	if body != nil {
 		jsonData, _ := json.Marshal(body)
-		reqBody = bytes.NewBuffer(jsonData)
+		reqBody = bytes.NewReader(jsonData)
+	} else {
+		reqBody = bytes.NewReader([]byte{})
 	}
 
 	req, err := http.NewRequest(method, url, reqBody)
@@ -26,11 +29,5 @@ func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token st
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return http.DefaultClient.Do(req)
 }
