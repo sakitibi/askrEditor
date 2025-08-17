@@ -53,7 +53,7 @@ func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
 
 // fetchSlugs は API から wikiSlug のページ一覧を取得
 func fetchSlugs(wikiSlug string) ([]string, error) {
-	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s/slugs", wikiSlug)
+	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s", wikiSlug)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch slugs: %w", err)
@@ -65,11 +65,17 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
 	}
 
-	var slugs []string
-	if err := json.NewDecoder(resp.Body).Decode(&slugs); err != nil {
+	// page_slugs を取り出す
+	var data struct {
+		WikiSlug  string   `json:"wiki_slug"`
+		PageSlugs []string `json:"page_slugs"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
-	return slugs, nil
+
+	return data.PageSlugs, nil
 }
 
 func cloneWiki() {
