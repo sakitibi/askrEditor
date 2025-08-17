@@ -9,7 +9,7 @@ const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: askreditor <replace|clone|delete|get> ...")
+		fmt.Println("Usage: askreditor <replace|clone|delete|get|push> ...")
 		return
 	}
 
@@ -24,14 +24,15 @@ func main() {
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
 		content := os.Args[4]
-		callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "")
+		callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "true") // X-CLI=true
 
 	case "clone":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: askreditor clone <wikiSlug>")
 			return
 		}
-		cloneWiki()
+		wikiSlug := os.Args[2]
+		cloneWiki(wikiSlug)
 
 	case "delete":
 		if len(os.Args) < 4 {
@@ -40,7 +41,7 @@ func main() {
 		}
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
-		callAPI("DELETE", wikiSlug, pageSlug, nil, "")
+		callAPI("DELETE", wikiSlug, pageSlug, nil, "true")
 
 	case "get":
 		if len(os.Args) < 4 {
@@ -50,6 +51,14 @@ func main() {
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
 		callAPI("GET", wikiSlug, pageSlug, nil, "")
+
+	case "push":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: askreditor push <wikiSlug>")
+			return
+		}
+		wikiSlug := os.Args[2]
+		pushWiki(wikiSlug)
 
 	case "version":
 		PrintVersion()

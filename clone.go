@@ -78,13 +78,8 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 	return data.PageSlugs, nil
 }
 
-func cloneWiki() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: askreditor clone <wikiSlug>")
-		return
-	}
-	wikiSlug := os.Args[2]
-
+// cloneWiki は wikiSlug を指定して全ページをローカルに保存
+func cloneWiki(wikiSlug string) {
 	// 1. slug 一覧を取得
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
