@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,17 +14,18 @@ func pushWiki(wikiSlug string) {
 		if err != nil {
 			return err
 		}
-
 		if info.IsDir() {
-			return nil // ディレクトリは無視
+			return nil
 		}
-
 		if !strings.HasSuffix(info.Name(), ".askr") {
-			return nil // .askr 以外は無視
+			return nil
 		}
 
-		// wikiSlug/slug.askr の形に分解
-		slug := strings.TrimSuffix(info.Name(), ".askr")
+		// wikiSlug ディレクトリ以下の相対パスで slug を作る
+		relPath, _ := filepath.Rel(wikiSlug, path)
+		slug := strings.TrimSuffix(relPath, ".askr")
+		slug = filepath.ToSlash(slug) // Windows 対応
+
 		contentBytes, _ := os.ReadFile(path)
 		body := map[string]string{
 			"title":   slug,
@@ -36,10 +38,12 @@ func pushWiki(wikiSlug string) {
 			return nil
 		}
 		defer resp.Body.Close()
-		fmt.Println("✅ Pushed:", slug)
+
+		data, _ := io.ReadAll(resp.Body)
+		fmt.Println("✅ Pushed:", slug, string(data))
 		return nil
 	})
 	if err != nil {
-		fmt.Println("Push error:", err)
+		fmt.Println("Push walk error:", err)
 	}
 }
