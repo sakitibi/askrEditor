@@ -33,7 +33,6 @@ func main() {
 		}
 		wikiSlug := os.Args[2]
 		cloneWiki(wikiSlug)
-
 	case "delete":
 		if len(os.Args) < 4 {
 			fmt.Println("Usage: askreditor delete <wikiSlug> <pageSlug>")
@@ -42,7 +41,6 @@ func main() {
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
 		callAPI("DELETE", wikiSlug, pageSlug, nil, "true")
-
 	case "get":
 		if len(os.Args) < 4 {
 			fmt.Println("Usage: askreditor get <wikiSlug> <pageSlug>")
@@ -51,7 +49,6 @@ func main() {
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
 		callAPI("GET", wikiSlug, pageSlug, nil, "")
-
 	case "push":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: askreditor push <wikiSlug>")
@@ -59,9 +56,18 @@ func main() {
 		}
 		wikiSlug := os.Args[2]
 		pushWiki(wikiSlug)
-
 	case "version":
 		PrintVersion()
+	case "login":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: askreditor login <email> <password>")
+			return
+		}
+		email := os.Args[2]
+		password := os.Args[3]
+		if err := login(email, password); err != nil {
+			fmt.Println("Login error:", err)
+		}
 	default:
 		fmt.Println("Unknown command:", cmd)
 	}

@@ -14,6 +14,7 @@ func pushWiki(wikiSlug string) {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
 			return nil
 		}
@@ -26,13 +27,15 @@ func pushWiki(wikiSlug string) {
 		slug := strings.TrimSuffix(relPath, ".askr")
 		slug = filepath.ToSlash(slug) // Windows 対応
 
+		// ファイル内容を読む
 		contentBytes, _ := os.ReadFile(path)
 		body := map[string]string{
 			"title":   slug,
 			"content": string(contentBytes),
 		}
 
-		resp, err := callAPI("PUT", wikiSlug, slug, body, "true") // X-CLI=true
+		// API 呼び出し (X-CLI=true ヘッダ付き)
+		resp, err := callAPI("PUT", wikiSlug, slug, body, "true")
 		if err != nil {
 			fmt.Println("Failed:", slug, err)
 			return nil
