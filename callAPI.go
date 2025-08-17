@@ -8,8 +8,12 @@ import (
 )
 
 func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token string) (*http.Response, error) {
-	// wikiSlug, pageSlug をURLに組み込む
-	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
+	var url string
+	if pageSlug != "" {
+		url = fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
+	} else {
+		url = fmt.Sprintf("%s/%s/FrontPage", apiBaseURL, wikiSlug)
+	}
 
 	var reqBody *bytes.Reader
 	if body != nil {
