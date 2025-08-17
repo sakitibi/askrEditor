@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -22,8 +21,7 @@ func replaceHandler(w http.ResponseWriter, r *http.Request) {
 		req.PageSlug = "FrontPage"
 	}
 
-	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, req.WikiSlug, req.PageSlug)
-	resp, err := requestAPI("PUT", url, map[string]string{"content": req.Content}, req.Token)
+	resp, err := callAPI("PUT", req.WikiSlug, req.PageSlug, map[string]string{"content": req.Content}, req.Token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

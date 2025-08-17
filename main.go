@@ -1,46 +1,63 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"net/http"
+	"fmt"
+	"os"
 )
 
 const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
 
 func main() {
-	http.HandleFunc("/replace", replaceHandler) // PUT
-	http.HandleFunc("/clone", cloneHandler)     // POST
-	http.HandleFunc("/delete", deleteHandler)   // DELETE
-	http.HandleFunc("/get", getHandler)         // GET
-	http.HandleFunc("/version", versionHandler)
-}
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: askreditor <replace|clone|delete|get> ...")
+		return
+	}
 
-func versionHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(version))
-}
+	cmd := os.Args[1]
 
-func requestAPI(method, url string, body any, token string) (*http.Response, error) {
-	var buf io.Reader
-	if body != nil {
-		jsonBytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
+	switch cmd {
+	case "replace":
+		if len(os.Args) < 5 {
+			fmt.Println("Usage: askreditor replace <wikiSlug> <pageSlug> <content>")
+			return
 		}
-		buf = bytes.NewBuffer(jsonBytes)
-	}
+		wikiSlug := os.Args[2]
+		pageSlug := os.Args[3]
+		content := os.Args[4]
+		callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "")
 
-	req, err := http.NewRequest(method, url, buf)
-	if err != nil {
-		return nil, err
-	}
+	case "clone":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: askreditor clone <wikiSlug>")
+			return
+		}
+		wikiSlug := os.Args[2]
+		callAPI("POST", wikiSlug, "", nil, "")
 
-	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
+	case "delete":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: askreditor delete <wikiSlug> <pageSlug>")
+			return
+		}
+		wikiSlug := os.Args[2]
+		pageSlug := os.Args[3]
+		callAPI("DELETE", wikiSlug, pageSlug, nil, "")
 
-	client := &http.Client{}
-	return client.Do(req)
+	case "get":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: askreditor get <wikiSlug> <pageSlug>")
+			return
+		}
+		wikiSlug := os.Args[2]
+		pageSlug := os.Args[3]
+		callAPI("GET", wikiSlug, pageSlug, nil, "")
+	case "version":
+		if len(os.Args) < 2 {
+			fmt.Println("Usage: askreditor version")
+			return
+		}
+		PrintVersion()
+	default:
+		fmt.Println("Unknown command:", cmd)
+	}
 }

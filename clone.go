@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -17,8 +16,7 @@ func cloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/%s", apiBaseURL, req.WikiSlug)
-	resp, err := requestAPI("POST", url, nil, req.Token)
+	resp, err := callAPI("POST", req.WikiSlug, "", nil, req.Token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

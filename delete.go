@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -21,8 +20,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		req.PageSlug = "FrontPage"
 	}
 
-	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, req.WikiSlug, req.PageSlug)
-	resp, err := requestAPI("DELETE", url, nil, req.Token)
+	resp, err := callAPI("DELETE", req.WikiSlug, req.PageSlug, nil, req.Token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

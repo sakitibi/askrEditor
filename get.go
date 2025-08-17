@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -13,8 +12,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 		pageSlug = "FrontPage"
 	}
 
-	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
-	resp, err := requestAPI("GET", url, nil, "")
+	resp, err := callAPI("GET", wikiSlug, pageSlug, nil, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
