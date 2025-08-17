@@ -21,6 +21,11 @@ type LoginResponse struct {
 	} `json:"user"`
 }
 
+type TokenData struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 func login(email, password string) error {
 	// Supabase の API エンドポイント
 	url := supabaseURL + "/auth/v1/token?grant_type=password"
@@ -78,4 +83,18 @@ func login(email, password string) error {
 
 	fmt.Println("✅ Login successful, tokens saved")
 	return nil
+}
+
+func getToken() (string, error) {
+	home, _ := os.UserHomeDir()
+	tokenPath := filepath.Join(home, ".askreditor", "token.json")
+	data, err := os.ReadFile(tokenPath)
+	if err != nil {
+		return "", fmt.Errorf("not logged in, please run `askreditor login <email> <password>`")
+	}
+	var token TokenData
+	if err := json.Unmarshal(data, &token); err != nil {
+		return "", fmt.Errorf("invalid token file, try logging in again")
+	}
+	return token.AccessToken, nil
 }

@@ -10,7 +10,14 @@ import (
 
 // pushWiki uploads all .askr files under wikiSlug directory
 func pushWiki(wikiSlug string) {
-	err := filepath.Walk(wikiSlug, func(path string, info os.FileInfo, err error) error {
+	// ローカル保存されたトークンを取得
+	token, err := getToken()
+	if err != nil || token == "" {
+		fmt.Println("❌ Not logged in. Please run: askreditor login <email> <password>")
+		return
+	}
+
+	err = filepath.Walk(wikiSlug, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -34,10 +41,10 @@ func pushWiki(wikiSlug string) {
 			"content": string(contentBytes),
 		}
 
-		// API 呼び出し (X-CLI=true ヘッダ付き)
-		resp, err := callAPI("PUT", wikiSlug, slug, body, "true")
+		// API 呼び出し
+		resp, err := callAPI("PUT", wikiSlug, slug, body, token)
 		if err != nil {
-			fmt.Println("Failed:", slug, err)
+			fmt.Println("❌ Failed:", slug, err)
 			return nil
 		}
 		defer resp.Body.Close()
