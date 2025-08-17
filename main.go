@@ -35,6 +35,7 @@ func requestAPI(method, url string, body any, token string) (*http.Response, err
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)

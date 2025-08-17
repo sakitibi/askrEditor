@@ -17,11 +17,6 @@ func cloneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.WikiSlug == "" {
-		http.Error(w, "wiki_slug is required", http.StatusBadRequest)
-		return
-	}
-
 	url := fmt.Sprintf("%s/%s", apiBaseURL, req.WikiSlug)
 	resp, err := requestAPI("POST", url, nil, req.Token)
 	if err != nil {

@@ -1,33 +1,20 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		WikiSlug string `json:"wiki_slug"`
-		Slug     string `json:"slug"`
-		Token    string `json:"token"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	wikiSlug := r.URL.Query().Get("wiki_slug")
+	pageSlug := r.URL.Query().Get("page_slug")
+	if pageSlug == "" {
+		pageSlug = "FrontPage"
 	}
 
-	if req.WikiSlug == "" {
-		http.Error(w, "wiki_slug is required", http.StatusBadRequest)
-		return
-	}
-
-	url := apiBaseURL + "/" + req.WikiSlug
-	if req.Slug != "" {
-		url += "/" + req.Slug
-	}
-
-	resp, err := requestAPI("GET", url, nil, req.Token)
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
+	resp, err := requestAPI("GET", url, nil, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
