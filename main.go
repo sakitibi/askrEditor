@@ -32,7 +32,7 @@ func main() {
 			return
 		}
 		wikiSlug := os.Args[2]
-		callAPI("POST", wikiSlug, "", nil, "")
+		cloneWiki(wikiSlug)
 
 	case "delete":
 		if len(os.Args) < 4 {
@@ -51,11 +51,8 @@ func main() {
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
 		callAPI("GET", wikiSlug, pageSlug, nil, "")
+
 	case "version":
-		if len(os.Args) < 2 {
-			fmt.Println("Usage: askreditor version")
-			return
-		}
 		PrintVersion()
 	default:
 		fmt.Println("Unknown command:", cmd)
