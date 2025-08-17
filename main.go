@@ -31,8 +31,7 @@ func main() {
 			fmt.Println("Usage: askreditor clone <wikiSlug>")
 			return
 		}
-		wikiSlug := os.Args[2]
-		cloneWiki(wikiSlug)
+		cloneWiki()
 
 	case "delete":
 		if len(os.Args) < 4 {

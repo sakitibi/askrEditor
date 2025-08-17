@@ -15,7 +15,7 @@ type Page struct {
 	Content  string `json:"content"`
 }
 
-// 単一ページをファイルに保存
+// savePage は page を wikiSlug/slug.askr に保存
 func savePage(page Page) error {
 	filePath := filepath.Join(page.WikiSlug, page.Slug+".askr")
 	dir := filepath.Dir(filePath)
@@ -25,41 +25,78 @@ func savePage(page Page) error {
 	return os.WriteFile(filePath, []byte(page.Content), 0644)
 }
 
-// wikiSlug 内のすべてのページを取得して保存
-func cloneWiki(wikiSlug string) {
+// fetchPage は API からページを取得
+func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
 	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s", wikiSlug)
+	if pageSlug != "" {
+		url += "/" + pageSlug
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Failed to fetch wiki:", err)
-		return
+		return nil, fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("API error %d: %s\n", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var page Page
+	if err := json.NewDecoder(resp.Body).Decode(&page); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return &page, nil
+}
+
+// fetchSlugs は API から wikiSlug のページ一覧を取得
+func fetchSlugs(wikiSlug string) ([]string, error) {
+	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s/slugs", wikiSlug)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch slugs: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var slugs []string
+	if err := json.NewDecoder(resp.Body).Decode(&slugs); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	return slugs, nil
+}
+
+func cloneWiki() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: askreditor clone <wikiSlug>")
+		return
+	}
+	wikiSlug := os.Args[2]
+
+	// 1. slug 一覧を取得
+	slugs, err := fetchSlugs(wikiSlug)
+	if err != nil {
+		fmt.Println("Failed to fetch slug list:", err)
 		return
 	}
 
-	// ページ配列としてアンマーシャル
-	var pages []Page
-	if err := json.NewDecoder(resp.Body).Decode(&pages); err != nil {
-		fmt.Println("Failed to parse JSON:", err)
-		return
-	}
-
-	if len(pages) == 0 {
-		fmt.Println("No pages found.")
-		return
-	}
-
-	for _, page := range pages {
-		if err := savePage(page); err != nil {
-			fmt.Println("Failed to save page:", page.Slug, err)
+	// 2. 各ページを保存
+	for _, slug := range slugs {
+		page, err := fetchPage(wikiSlug, slug)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		if err := savePage(*page); err != nil {
+			fmt.Println("Failed to save page:", err)
 			continue
 		}
 		fmt.Printf("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
 	}
-
-	fmt.Println("✅ Clone finished")
 }
