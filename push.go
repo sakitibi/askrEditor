@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,45 +9,37 @@ import (
 
 // pushWiki uploads all .askr files under wikiSlug directory
 func pushWiki(wikiSlug string) {
-	root := filepath.Join(".", wikiSlug)
-
-	// ディレクトリが存在するか確認
-	if _, err := os.Stat(root); os.IsNotExist(err) {
-		fmt.Println("Error: directory does not exist:", root)
-		return
-	}
-
-	// ディレクトリツリーを走査
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.Walk(wikiSlug, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		// ディレクトリはスキップ
-		if d.IsDir() {
+
+		if info.IsDir() {
+			return nil // ディレクトリは無視
+		}
+
+		if !strings.HasSuffix(info.Name(), ".askr") {
+			return nil // .askr 以外は無視
+		}
+
+		// wikiSlug/slug.askr の形に分解
+		slug := strings.TrimSuffix(info.Name(), ".askr")
+		contentBytes, _ := os.ReadFile(path)
+		body := map[string]string{
+			"title":   slug,
+			"content": string(contentBytes),
+		}
+
+		resp, err := callAPI("PUT", wikiSlug, slug, body, "true") // X-CLI=true
+		if err != nil {
+			fmt.Println("Failed:", slug, err)
 			return nil
 		}
-
-		// .askr ファイルだけ対象
-		if strings.HasSuffix(d.Name(), ".askr") {
-			rel, _ := filepath.Rel(root, path) // wikiSlug からの相対パス
-			pageSlug := strings.TrimSuffix(rel, ".askr")
-
-			// ファイル内容を読む
-			content, err := os.ReadFile(path)
-			if err != nil {
-				fmt.Println("Failed to read:", path, err)
-				return nil
-			}
-
-			// API 呼び出し
-			payload := map[string]string{"content": string(content)}
-			callAPI("PUT", wikiSlug, pageSlug, payload, "true")
-		}
-
+		defer resp.Body.Close()
+		fmt.Println("✅ Pushed:", slug)
 		return nil
 	})
-
 	if err != nil {
-		fmt.Println("Error walking wiki directory:", err)
+		fmt.Println("Push error:", err)
 	}
 }
