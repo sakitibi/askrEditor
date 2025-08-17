@@ -3,34 +3,52 @@ package main
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
-// ======================
-// pushWiki はローカルファイルを wiki に同期
-// ======================
+// pushWiki uploads all .askr files under wikiSlug directory
 func pushWiki(wikiSlug string) {
-	baseDir := wikiSlug
-	filepath.WalkDir(baseDir, func(path string, d fs.DirEntry, err error) error {
+	root := filepath.Join(".", wikiSlug)
+
+	// ディレクトリが存在するか確認
+	if _, err := os.Stat(root); os.IsNotExist(err) {
+		fmt.Println("Error: directory does not exist:", root)
+		return
+	}
+
+	// ディレクトリツリーを走査
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			fmt.Println("Walk error:", err)
+			return err
+		}
+		// ディレクトリはスキップ
+		if d.IsDir() {
 			return nil
 		}
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".askr") {
-			return nil
+
+		// .askr ファイルだけ対象
+		if strings.HasSuffix(d.Name(), ".askr") {
+			rel, _ := filepath.Rel(root, path) // wikiSlug からの相対パス
+			pageSlug := strings.TrimSuffix(rel, ".askr")
+
+			// ファイル内容を読む
+			content, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Println("Failed to read:", path, err)
+				return nil
+			}
+
+			// API 呼び出し
+			payload := map[string]string{"content": string(content)}
+			callAPI("PUT", wikiSlug, pageSlug, payload, "true")
 		}
-		rel, _ := filepath.Rel(baseDir, path)
-		pageSlug := strings.TrimSuffix(rel, ".askr")
-		contentBytes, err := ioutil.ReadFile(path)
-		if err != nil {
-			fmt.Println("Failed to read file:", path, err)
-			return nil
-		}
-		content := string(contentBytes)
-		callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "true")
-		fmt.Printf("✅ Pushed %s/%s\n", wikiSlug, pageSlug)
+
 		return nil
 	})
+
+	if err != nil {
+		fmt.Println("Error walking wiki directory:", err)
+	}
 }

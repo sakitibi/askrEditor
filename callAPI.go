@@ -7,19 +7,16 @@ import (
 	"net/http"
 )
 
-func callAPI(method, wikiSlug, pageSlug string, body any, token string) (*http.Response, error) {
-	url := apiBaseURL + "/" + wikiSlug
-	if pageSlug != "" {
-		url += "/" + pageSlug
-	}
+func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token string) (*http.Response, error) {
+	url := "http://localhost:3000/api/wiki/" + wikiSlug + "/" + pageSlug
 
-	var buf io.Reader
+	var reqBody io.Reader
 	if body != nil {
-		jsonBytes, _ := json.Marshal(body)
-		buf = bytes.NewBuffer(jsonBytes)
+		jsonData, _ := json.Marshal(body)
+		reqBody = bytes.NewBuffer(jsonData)
 	}
 
-	req, err := http.NewRequest(method, url, buf)
+	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
 		return nil, err
 	}
@@ -30,5 +27,10 @@ func callAPI(method, wikiSlug, pageSlug string, body any, token string) (*http.R
 	}
 
 	client := &http.Client{}
-	return client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
