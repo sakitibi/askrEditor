@@ -15,8 +15,19 @@ type Page struct {
 	Content  string `json:"content"`
 }
 
+// 単一ページをファイルに保存
+func savePage(page Page) error {
+	filePath := filepath.Join(page.WikiSlug, page.Slug+".askr")
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(filePath, []byte(page.Content), 0644)
+}
+
+// wikiSlug 内のすべてのページを取得して保存
 func cloneWiki(wikiSlug string) {
-	url := "https://asakura-wiki.vercel.app/api/wiki/" + wikiSlug
+	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s", wikiSlug)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println("Failed to fetch wiki:", err)
@@ -24,29 +35,31 @@ func cloneWiki(wikiSlug string) {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
-		fmt.Println("API error:", string(body))
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("API error %d: %s\n", resp.StatusCode, string(body))
 		return
 	}
 
-	// 単一ページとしてアンマーシャル
-	var page Page
-	if err := json.Unmarshal(body, &page); err != nil {
+	// ページ配列としてアンマーシャル
+	var pages []Page
+	if err := json.NewDecoder(resp.Body).Decode(&pages); err != nil {
 		fmt.Println("Failed to parse JSON:", err)
 		return
 	}
 
-	// ディレクトリ作成
-	dir := page.WikiSlug
-	os.MkdirAll(dir, 0755)
-
-	// ファイル名は slug.askr
-	filePath := filepath.Join(dir, page.Slug+".askr")
-	if err := os.WriteFile(filePath, []byte(page.Content), 0644); err != nil {
-		fmt.Println("Failed to write file:", err)
+	if len(pages) == 0 {
+		fmt.Println("No pages found.")
 		return
 	}
 
-	fmt.Printf("✅ Saved %s\n", filePath)
+	for _, page := range pages {
+		if err := savePage(page); err != nil {
+			fmt.Println("Failed to save page:", page.Slug, err)
+			continue
+		}
+		fmt.Printf("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+	}
+
+	fmt.Println("✅ Clone finished")
 }
