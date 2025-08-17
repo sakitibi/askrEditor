@@ -1,65 +1,112 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"os"
+	"io"
+	"log"
+	"net/http"
 )
 
-func printError(msg string, err any) {
-	// 赤文字で出力
-	fmt.Fprintf(os.Stderr, "\033[31m%s\033[0m\n", msg)
-}
+const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: askreditor <command> [args...]")
-		os.Exit(1)
+	http.HandleFunc("/replace", replaceHandler) // PUT
+	http.HandleFunc("/clone", cloneHandler)     // POST
+	http.HandleFunc("/delete", deleteHandler)   // DELETE
+	http.HandleFunc("/get", getHandler)         // GET
+	http.HandleFunc("/version", versionHandler)
+
+	fmt.Println("✅ askreditor API server running on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(version))
+}
+
+func requestAPI(method, url string, body any, token string) (*http.Response, error) {
+	var buf io.Reader
+	if body != nil {
+		jsonBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		buf = bytes.NewBuffer(jsonBytes)
 	}
 
-	command := os.Args[1]
-
-	switch command {
-	case "clone":
-		if len(os.Args) < 3 {
-			printError("Usage: askreditor clone <wiki_slug>", "")
-			os.Exit(1)
-		}
-		wikiSlug := os.Args[2]
-
-		client, err := NewSupabaseClient()
-		if err != nil {
-			fmt.Println("Cannot initialize Supabase client:", err)
-			os.Exit(1)
-		}
-
-		if err := cloneWiki(client, wikiSlug); err != nil {
-			printError("Clone failed:", err)
-			os.Exit(1)
-		}
-
-	case "replace":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: askreditor replace <file.askr>")
-			os.Exit(1)
-		}
-		file := os.Args[2]
-
-		client, err := NewSupabaseClient()
-		if err != nil {
-			fmt.Println("Cannot initialize Supabase client:", err)
-			os.Exit(1)
-		}
-
-		if err := ReplaceFile(client, file); err != nil {
-			fmt.Println("Replace failed:", err)
-			os.Exit(1)
-		}
-
-	case "version":
-		PrintVersion()
-
-	default:
-		fmt.Println("Unknown command:", command)
-		os.Exit(1)
+	req, err := http.NewRequest(method, url, buf)
+	if err != nil {
+		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+func getHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		WikiSlug string `json:"wiki_slug"`
+		Slug     string `json:"slug"`
+		Token    string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.WikiSlug == "" {
+		http.Error(w, "wiki_slug is required", http.StatusBadRequest)
+		return
+	}
+
+	url := apiBaseURL + "/" + req.WikiSlug
+	if req.Slug != "" {
+		url += "/" + req.Slug
+	}
+
+	resp, err := requestAPI("GET", url, nil, req.Token)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	data, _ := io.ReadAll(resp.Body)
+	w.WriteHeader(resp.StatusCode)
+	w.Write(data)
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		WikiSlug string `json:"wiki_slug"`
+		Slug     string `json:"slug"`
+		Token    string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.WikiSlug == "" || req.Slug == "" {
+		http.Error(w, "wiki_slug and slug are required", http.StatusBadRequest)
+		return
+	}
+
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, req.WikiSlug, req.Slug)
+	resp, err := requestAPI("DELETE", url, nil, req.Token)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	data, _ := io.ReadAll(resp.Body)
+	w.WriteHeader(resp.StatusCode)
+	w.Write(data)
 }
