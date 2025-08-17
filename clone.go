@@ -53,6 +53,7 @@ func cloneHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // cloneWiki は wikiSlug 配下のページを取得してファイル出力
+// cloneWiki は wikiSlug 配下のページを取得してファイル出力
 func cloneWiki(wikiSlug string) {
 	url := apiBaseURL + "/" + wikiSlug
 	resp, err := http.Get(url)
@@ -69,14 +70,23 @@ func cloneWiki(wikiSlug string) {
 		Slug    string `json:"slug"`
 		Content string `json:"content"`
 	}
-	var pages []Page
-	if err := json.Unmarshal(body, &pages); err != nil {
-		fmt.Println("Failed to parse JSON:", err)
-		return
+
+	// API は { pages: [...] } の形式で返すと仮定
+	var result struct {
+		Pages []Page `json:"pages"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		// 単一ページの可能性もあるので fallback
+		var single Page
+		if err2 := json.Unmarshal(body, &single); err2 != nil {
+			fmt.Println("Failed to parse JSON:", err)
+			return
+		}
+		result.Pages = []Page{single}
 	}
 
 	// 各ページをファイルに書き出す
-	for _, page := range pages {
+	for _, page := range result.Pages {
 		filename := fmt.Sprintf("%s.json", page.Slug)
 		if err := os.WriteFile(filename, []byte(page.Content), 0644); err != nil {
 			fmt.Printf("Failed to write %s: %v\n", filename, err)
@@ -85,5 +95,5 @@ func cloneWiki(wikiSlug string) {
 		}
 	}
 
-	fmt.Printf("✅ Cloned wiki '%s' (%d pages)\n", wikiSlug, len(pages))
+	fmt.Printf("✅ Cloned wiki '%s' (%d pages)\n", wikiSlug, len(result.Pages))
 }
