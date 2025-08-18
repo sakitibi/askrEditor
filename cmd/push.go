@@ -65,9 +65,9 @@ func PushWiki(wikiSlug string) {
 
 		data, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			colors.GreenPrint("✅ Pushed:", slug, string(data))
+			colors.GreenPrint("✅ Pushed: %s\n%s", slug, string(data))
 		} else {
-			colors.RedPrint("❌ Failed to push:", slug, string(data))
+			colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
 		}
 		return nil
 	})
