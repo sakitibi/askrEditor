@@ -1,21 +1,20 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/sakitibi/askrEditor/internal/auth"
+	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
 // pushWiki uploads all .askr files under wikiSlug directory
 func PushWiki(wikiSlug string) {
 	accessToken, err := auth.GetToken()
 	if err != nil {
-		color.New(color.FgRed, color.Bold).Println("❌", err)
+		colors.RedPrint1("❌", err)
 		return
 	}
 
@@ -43,22 +42,21 @@ func PushWiki(wikiSlug string) {
 
 		resp, err := callAPI("PUT", wikiSlug, slug, body, accessToken)
 		if err != nil {
-			color.New(color.FgRed, color.Bold).Println("Failed:", slug, err)
+			colors.RedPrint("Failed:", slug, err)
 			return nil
 		}
 		defer resp.Body.Close()
 
 		data, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			color.New(color.FgGreen, color.Bold).Println("✅ Pushed:", slug, string(data))
+			colors.GreenPrint("✅ Pushed:", slug, string(data))
 		} else {
-			color.New(color.FgRed, color.Bold).Println("❌ Failed to push:", slug, string(data))
+			colors.RedPrint("❌ Failed to push:", slug, string(data))
 		}
-
 		return nil
 	})
 
 	if err != nil {
-		fmt.Println("Push walk error:", err)
+		colors.RedPrint1("Push walk error:", err)
 	}
 }
