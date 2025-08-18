@@ -27,8 +27,7 @@ func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessTo
 	if accessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 	}
-
-	// ←ここが重要
+	// CLI 用ヘッダ
 	req.Header.Set("X-CLI", "true")
 
 	return http.DefaultClient.Do(req)

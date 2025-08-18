@@ -92,9 +92,13 @@ func getToken() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("not logged in, please run `askreditor login <email> <password>`")
 	}
-	var token TokenData
+
+	var token struct {
+		AccessToken string `json:"access_token"`
+	}
 	if err := json.Unmarshal(data, &token); err != nil {
 		return "", fmt.Errorf("invalid token file, try logging in again")
 	}
+
 	return token.AccessToken, nil
 }
