@@ -12,6 +12,8 @@ import (
 	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
+const ApiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
+
 type LoginResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

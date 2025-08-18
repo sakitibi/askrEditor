@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sakitibi/askrEditor/internal/auth"
 	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
@@ -56,7 +57,7 @@ func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
 
 // fetchSlugs は API から wikiSlug のページ一覧を取得
 func fetchSlugs(wikiSlug string) ([]string, error) {
-	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s", wikiSlug)
+	url := fmt.Sprintf("%s/%s", auth.ApiBaseURL, wikiSlug)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch slugs: %w", err)
@@ -85,11 +86,11 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 func CloneWiki(wikiSlug string) {
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
-		colors.RedPrint("Failed to fetch slug list:", err)
+		colors.RedPrint("Failed to fetch slug list: %s", err)
 		return
 	}
 	if len(slugs) == 0 {
-		colors.RedPrint("%s Wiki* is Not defined", wikiSlug)
+		colors.RedPrint("%s is Not defined", wikiSlug)
 		return
 	}
 	for _, slug := range slugs {
@@ -99,7 +100,7 @@ func CloneWiki(wikiSlug string) {
 			continue
 		}
 		if err := savePage(*page); err != nil {
-			colors.RedPrint("Failed to save page:", err)
+			colors.RedPrint("Failed to save page: %s", err)
 			continue
 		}
 		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)

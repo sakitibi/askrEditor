@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/sakitibi/askrEditor/internal/auth"
 )
 
-const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
-
 func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessToken string) (*http.Response, error) {
-	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
+	url := fmt.Sprintf("%s/%s/%s", auth.ApiBaseURL, wikiSlug, pageSlug)
 
 	var reqBody *bytes.Reader
 	if body != nil {
