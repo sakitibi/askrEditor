@@ -14,6 +14,7 @@ import (
 type Page struct {
 	Slug     string `json:"slug"`
 	WikiSlug string `json:"wiki_slug"`
+	Title    string `json:"title"`
 	Content  string `json:"content"`
 }
 
@@ -24,15 +25,15 @@ func savePage(page Page) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	return os.WriteFile(filePath, []byte(page.Content), 0644)
+
+	// TITLE 行を追加
+	data := fmt.Sprintf("TITLE:%s\n%s", page.Title, page.Content)
+	return os.WriteFile(filePath, []byte(data), 0644)
 }
 
 // fetchPage は API からページを取得
 func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
-	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s", wikiSlug)
-	if pageSlug != "" {
-		url += "/" + pageSlug
-	}
+	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s/%s", wikiSlug, pageSlug)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -80,16 +81,14 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 	return data.PageSlugs, nil
 }
 
-// cloneWiki は wikiSlug を指定して全ページをローカルに保存
+// CloneWiki は wikiSlug を指定して全ページをローカルに保存
 func CloneWiki(wikiSlug string) {
-	// 1. slug 一覧を取得
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
 		colors.RedPrint1("Failed to fetch slug list:", err)
 		return
 	}
 
-	// 2. 各ページを保存
 	for _, slug := range slugs {
 		page, err := fetchPage(wikiSlug, slug)
 		if err != nil {
