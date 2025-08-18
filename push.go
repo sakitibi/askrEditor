@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 // pushWiki uploads all .askr files under wikiSlug directory
@@ -47,9 +49,9 @@ func pushWiki(wikiSlug string) {
 
 		data, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			fmt.Println("✅ Pushed:", slug, string(data))
+			color.New(color.FgGreen, color.Bold).Println("✅ Pushed:", slug, string(data))
 		} else {
-			fmt.Println("❌ Failed to push:", slug, string(data))
+			color.New(color.FgRed, color.Bold).Println("❌ Failed to push:", slug, string(data))
 		}
 
 		return nil

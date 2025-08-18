@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/fatih/color"
 )
 
 type Page struct {
@@ -83,7 +85,7 @@ func cloneWiki(wikiSlug string) {
 	// 1. slug 一覧を取得
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
-		fmt.Println("Failed to fetch slug list:", err)
+		color.New(color.FgRed, color.Bold).Println("Failed to fetch slug list:", err)
 		return
 	}
 
@@ -98,6 +100,6 @@ func cloneWiki(wikiSlug string) {
 			fmt.Println("Failed to save page:", err)
 			continue
 		}
-		fmt.Printf("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+		color.New(color.FgGreen, color.Bold).Printf("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
 	}
 }
