@@ -85,7 +85,7 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 func CloneWiki(wikiSlug string) {
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
-		colors.RedPrint1("Failed to fetch slug list:", err)
+		colors.RedPrint("Failed to fetch slug list:", err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func CloneWiki(wikiSlug string) {
 			continue
 		}
 		if err := savePage(*page); err != nil {
-			colors.RedPrint1("Failed to save page:", err)
+			colors.RedPrint("Failed to save page:", err)
 			continue
 		}
 		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)

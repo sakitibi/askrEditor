@@ -14,7 +14,7 @@ import (
 func PushWiki(wikiSlug string) {
 	accessToken, err := auth.GetToken()
 	if err != nil {
-		colors.RedPrint1("❌", err)
+		colors.RedPrint("❌", err)
 		return
 	}
 
@@ -29,15 +29,31 @@ func PushWiki(wikiSlug string) {
 			return nil
 		}
 
-		// wikiSlug ディレクトリ以下の相対パスで slug を作る
 		relPath, _ := filepath.Rel(wikiSlug, path)
 		slug := strings.TrimSuffix(relPath, ".askr")
-		slug = filepath.ToSlash(slug) // Windows 対応
+		slug = filepath.ToSlash(slug)
 
 		contentBytes, _ := os.ReadFile(path)
+		lines := strings.SplitN(string(contentBytes), "\n", 2)
+
+		var title string
+		var content string
+
+		if len(lines) > 0 && strings.HasPrefix(lines[0], "TITLE:") {
+			title = strings.TrimSpace(strings.TrimPrefix(lines[0], "TITLE:"))
+			if len(lines) > 1 {
+				content = lines[1]
+			} else {
+				content = ""
+			}
+		} else {
+			title = slug
+			content = string(contentBytes)
+		}
+
 		body := map[string]string{
-			"title":   slug,
-			"content": string(contentBytes),
+			"title":   title,
+			"content": content,
 		}
 
 		resp, err := callAPI("PUT", wikiSlug, slug, body, accessToken)
@@ -57,6 +73,6 @@ func PushWiki(wikiSlug string) {
 	})
 
 	if err != nil {
-		colors.RedPrint1("Push walk error:", err)
+		colors.RedPrint("Push walk error:", err)
 	}
 }
