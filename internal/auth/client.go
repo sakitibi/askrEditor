@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
+	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
 type LoginResponse struct {
@@ -78,6 +78,6 @@ func Login(email, password string) error {
 		return err
 	}
 
-	color.New(color.FgGreen, color.Bold).Println("✅ Login successful, tokens saved")
+	colors.GreenPrintText("✅ Login successful, tokens saved")
 	return nil
 }

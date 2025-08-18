@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
+	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
 type Page struct {
@@ -85,7 +85,7 @@ func CloneWiki(wikiSlug string) {
 	// 1. slug 一覧を取得
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
-		color.New(color.FgRed, color.Bold).Println("Failed to fetch slug list:", err)
+		colors.RedPrint1("Failed to fetch slug list:", err)
 		return
 	}
 
@@ -97,9 +97,9 @@ func CloneWiki(wikiSlug string) {
 			continue
 		}
 		if err := savePage(*page); err != nil {
-			fmt.Println("Failed to save page:", err)
+			colors.RedPrint1("Failed to save page:", err)
 			continue
 		}
-		color.New(color.FgGreen, color.Bold).Printf("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
 	}
 }
