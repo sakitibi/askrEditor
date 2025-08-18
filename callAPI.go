@@ -7,13 +7,8 @@ import (
 	"net/http"
 )
 
-func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token string) (*http.Response, error) {
-	var url string
-	if pageSlug != "" {
-		url = fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
-	} else {
-		url = fmt.Sprintf("%s/%s/FrontPage", apiBaseURL, wikiSlug)
-	}
+func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessToken string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
 
 	var reqBody *bytes.Reader
 	if body != nil {
@@ -29,9 +24,12 @@ func callAPI(method, wikiSlug, pageSlug string, body map[string]string, token st
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
+	if accessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+accessToken)
 	}
+
+	// ←ここが重要
+	req.Header.Set("X-CLI", "true")
 
 	return http.DefaultClient.Do(req)
 }
