@@ -6,22 +6,10 @@ func RedPrint(content string, args1 any, args2 any) {
 	color.New(color.FgRed, color.Bold).Println(content, args1, args2)
 }
 
-func GreenPrint(content string, args1 any, args2 any) {
-	color.New(color.FgGreen, color.Bold).Println(content, args1, args2)
-}
-
 func RedPrint1(content string, args1 any) {
 	color.New(color.FgRed, color.Bold).Println(content, args1)
 }
 
-func GreenPrint1(content string, args1 any) {
-	color.New(color.FgGreen, color.Bold).Println(content, args1)
-}
-
 func RedPrintText(content string) {
 	color.New(color.FgRed, color.Bold).Println(content)
-}
-
-func GreenPrintText(content string) {
-	color.New(color.FgGreen, color.Bold).Println(content)
 }
