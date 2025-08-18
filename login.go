@@ -87,7 +87,7 @@ func login(email, password string) error {
 
 func getToken() (string, error) {
 	home, _ := os.UserHomeDir()
-	tokenPath := filepath.Join(home, ".askreditor", "token.json")
+	tokenPath := filepath.Join(home, ".askreditor_token.json")
 	data, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return "", fmt.Errorf("not logged in, please run `askreditor login <email> <password>`")
