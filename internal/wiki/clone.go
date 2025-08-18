@@ -88,6 +88,10 @@ func CloneWiki(wikiSlug string) {
 		colors.RedPrint("Failed to fetch slug list:", err)
 		return
 	}
+	if len(slugs) == 0 {
+		colors.RedPrint("%s Wiki* is Not defined", wikiSlug)
+		return
+	}
 	for _, slug := range slugs {
 		page, err := fetchPage(wikiSlug, slug)
 		if err != nil {
@@ -96,10 +100,6 @@ func CloneWiki(wikiSlug string) {
 		}
 		if err := savePage(*page); err != nil {
 			colors.RedPrint("Failed to save page:", err)
-			continue
-		}
-		if len(slugs) == 0 {
-			colors.RedPrint("%s Wiki* is Not defined", page.WikiSlug)
 			continue
 		}
 		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
