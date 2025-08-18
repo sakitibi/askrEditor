@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"bytes"
@@ -23,14 +23,9 @@ type LoginResponse struct {
 	} `json:"user"`
 }
 
-type TokenData struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
-func login(email, password string) error {
+func Login(email, password string) error {
 	// Supabase の API エンドポイント
-	url := supabaseURL + "/auth/v1/token?grant_type=password"
+	url := SupabaseURL + "/auth/v1/token?grant_type=password"
 
 	// リクエストボディ
 	payload := map[string]string{
@@ -49,7 +44,7 @@ func login(email, password string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("apikey", supabaseAnonKey)
+	req.Header.Set("apikey", SupabaseAnonKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	// 実行
@@ -85,22 +80,4 @@ func login(email, password string) error {
 
 	color.New(color.FgGreen, color.Bold).Println("✅ Login successful, tokens saved")
 	return nil
-}
-
-func getToken() (string, error) {
-	home, _ := os.UserHomeDir()
-	tokenPath := filepath.Join(home, ".askreditor_token.json")
-	data, err := os.ReadFile(tokenPath)
-	if err != nil {
-		return "", fmt.Errorf("not logged in, please run `askreditor login <email> <password>`")
-	}
-
-	var token struct {
-		AccessToken string `json:"access_token"`
-	}
-	if err := json.Unmarshal(data, &token); err != nil {
-		return "", fmt.Errorf("invalid token file, try logging in again")
-	}
-
-	return token.AccessToken, nil
 }

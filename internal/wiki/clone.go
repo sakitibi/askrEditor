@@ -1,4 +1,4 @@
-package main
+package wiki
 
 import (
 	"encoding/json"
@@ -81,7 +81,7 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 }
 
 // cloneWiki は wikiSlug を指定して全ページをローカルに保存
-func cloneWiki(wikiSlug string) {
+func CloneWiki(wikiSlug string) {
 	// 1. slug 一覧を取得
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {

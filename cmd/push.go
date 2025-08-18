@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/sakitibi/askrEditor/internal/auth"
 )
 
 // pushWiki uploads all .askr files under wikiSlug directory
-func pushWiki(wikiSlug string) {
-	accessToken, err := getToken()
+func PushWiki(wikiSlug string) {
+	accessToken, err := auth.GetToken()
 	if err != nil {
 		color.New(color.FgRed, color.Bold).Println("❌", err)
 		return

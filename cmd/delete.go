@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"encoding/json"
@@ -6,11 +6,10 @@ import (
 	"net/http"
 )
 
-func replaceHandler(w http.ResponseWriter, r *http.Request) {
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		WikiSlug string `json:"wiki_slug"`
 		PageSlug string `json:"page_slug"`
-		Content  string `json:"content"`
 		Token    string `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -21,7 +20,7 @@ func replaceHandler(w http.ResponseWriter, r *http.Request) {
 		req.PageSlug = "FrontPage"
 	}
 
-	resp, err := callAPI("PUT", req.WikiSlug, req.PageSlug, map[string]string{"content": req.Content}, req.Token)
+	resp, err := callAPI("DELETE", req.WikiSlug, req.PageSlug, nil, req.Token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

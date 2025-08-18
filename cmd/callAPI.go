@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 )
+
+const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
 
 func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessToken string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s/%s", apiBaseURL, wikiSlug, pageSlug)
