@@ -67,7 +67,11 @@ func PushWiki(wikiSlug string) {
 		if resp.StatusCode == 200 {
 			colors.GreenPrint("✅ Pushed: %s\n%s", slug, string(data))
 		} else {
-			colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
+			if string(data) == "{\"error\":\"CLI operations not allowed for this wiki\"}" {
+				colors.RedPrint("❌ Failed to push: %s\nCLI operations not allowed for this wiki", slug)
+			} else {
+				colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
+			}
 		}
 		return nil
 	})
