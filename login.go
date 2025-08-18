@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/fatih/color"
 )
 
 type LoginResponse struct {
@@ -81,7 +83,7 @@ func login(email, password string) error {
 		return err
 	}
 
-	fmt.Println("✅ Login successful, tokens saved")
+	color.New(color.FgGreen, color.Bold).Println("✅ Login successful, tokens saved")
 	return nil
 }
 

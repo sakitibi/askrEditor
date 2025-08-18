@@ -1,39 +1,40 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 const apiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: askreditor <replace|clone|delete|get|push> ...")
+		color.New(color.FgRed, color.Bold).Println("Usage: askreditor <clone|push|login|version> ...")
 		return
 	}
 
 	cmd := os.Args[1]
 
 	switch cmd {
-	case "replace":
-		if len(os.Args) < 5 {
-			fmt.Println("Usage: askreditor replace <wikiSlug> <pageSlug> <content>")
-			return
-		}
-		wikiSlug := os.Args[2]
-		pageSlug := os.Args[3]
-		content := os.Args[4]
-		callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "true") // X-CLI=true
+	/*case "replace":
+	if len(os.Args) < 5 {
+		fmt.Println("Usage: askreditor replace <wikiSlug> <pageSlug> <content>")
+		return
+	}
+	wikiSlug := os.Args[2]
+	pageSlug := os.Args[3]
+	content := os.Args[4]
+	callAPI("PUT", wikiSlug, pageSlug, map[string]string{"content": content}, "true") // X-CLI=true*/
 
 	case "clone":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: askreditor clone <wikiSlug>")
+			color.New(color.FgRed, color.Bold).Println("Usage: askreditor clone <wikiSlug>")
 			return
 		}
 		wikiSlug := os.Args[2]
 		cloneWiki(wikiSlug)
-	case "delete":
+	/*case "delete":
 		if len(os.Args) < 4 {
 			fmt.Println("Usage: askreditor delete <wikiSlug> <pageSlug>")
 			return
@@ -48,10 +49,10 @@ func main() {
 		}
 		wikiSlug := os.Args[2]
 		pageSlug := os.Args[3]
-		callAPI("GET", wikiSlug, pageSlug, nil, "")
+		callAPI("GET", wikiSlug, pageSlug, nil, "")*/
 	case "push":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: askreditor push <wikiSlug>")
+			color.New(color.FgRed, color.Bold).Println("Usage: askreditor push <wikiSlug>")
 			return
 		}
 		wikiSlug := os.Args[2]
@@ -60,15 +61,15 @@ func main() {
 		PrintVersion()
 	case "login":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: askreditor login <email> <password>")
+			color.New(color.FgRed, color.Bold).Println("Usage: askreditor login <email> <password>")
 			return
 		}
 		email := os.Args[2]
 		password := os.Args[3]
 		if err := login(email, password); err != nil {
-			fmt.Println("Login error:", err)
+			color.New(color.FgRed, color.Bold).Println("Login error:", err)
 		}
 	default:
-		fmt.Println("Unknown command:", cmd)
+		color.New(color.FgRed, color.Bold).Println("Unknown command:", cmd)
 	}
 }

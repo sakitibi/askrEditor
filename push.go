@@ -14,7 +14,7 @@ import (
 func pushWiki(wikiSlug string) {
 	accessToken, err := getToken()
 	if err != nil {
-		fmt.Println("❌", err)
+		color.New(color.FgRed, color.Bold).Println("❌", err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func pushWiki(wikiSlug string) {
 
 		resp, err := callAPI("PUT", wikiSlug, slug, body, accessToken)
 		if err != nil {
-			fmt.Println("Failed:", slug, err)
+			color.New(color.FgRed, color.Bold).Println("Failed:", slug, err)
 			return nil
 		}
 		defer resp.Body.Close()
