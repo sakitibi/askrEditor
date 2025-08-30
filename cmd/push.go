@@ -65,10 +65,16 @@ func PushWiki(wikiSlug string) {
 
 		data, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			colors.GreenPrint("✅ Pushed: %s\n%s", slug, string(data))
+			if string(data) == "{\"success\":true}" {
+				colors.GreenPrint("✅ Pushed: %s\nsuccess", slug)
+			} else {
+				colors.GreenPrint("✅ Pushed: %s\n%s", slug, string(data))
+			}
 		} else {
 			if string(data) == "{\"error\":\"CLI operations not allowed for this wiki\"}" {
 				colors.RedPrint("❌ Failed to push: %s\nCLI operations not allowed for this wiki", slug)
+			} else if string(data) == "{\"error\":\"Not authorized to edit\"}" {
+				colors.RedPrintText("❌ Failed to push: ログインして下さい")
 			} else {
 				colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
 			}
