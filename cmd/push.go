@@ -75,6 +75,7 @@ func PushWiki(wikiSlug string) {
 				colors.RedPrint("❌ Failed to push: %s\nCLI operations not allowed for this wiki", slug)
 			} else if string(data) == "{\"error\":\"Not authorized to edit\"}" {
 				colors.RedPrintText("❌ Failed to push: ログインして下さい")
+				colors.RedPrintText("13ninアカウントをお持ちでない場合は\nこちらから作成して下さい\nhttps://asakura-wiki.vercel.app/login/13nin/signup")
 			} else {
 				colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
 			}
