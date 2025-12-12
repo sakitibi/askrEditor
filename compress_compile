@@ -1,0 +1,18 @@
+version=2.0.60
+# macOS
+GOOS=darwin GOARCH=arm64 go build -o askreditor
+tar -zcf askreditor-$version-darwin-arm64.tar.gz ./askreditor
+GOOS=darwin GOARCH=amd64 go build -o askreditor
+tar -zcf askreditor-$version-darwin-amd64.tar.gz ./askreditor
+
+# Linux
+GOOS=linux GOARCH=amd64 go build -o askreditor
+tar -zcf askreditor-$version-linux-amd64.tar.gz ./askreditor
+GOOS=linux GOARCH=arm64 go build -o askreditor
+tar -zcf askreditor-$version-linux-arm64.tar.gz ./askreditor
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o askreditor.exe
+zip askreditor-$version-windows-amd64.zip ./askreditor.exe
+GOOS=windows GOARCH=arm64 go build -o askreditor.exe
+zip askreditor-$version-windows-arm64.zip ./askreditor.exe
