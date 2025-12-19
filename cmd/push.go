@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,7 +11,11 @@ import (
 	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
-// pushWiki uploads all .askr files under wikiSlug directory
+// API から取得する slug 一覧用
+type wikiIndexResponse struct {
+	PageSlugs []string `json:"page_slugs"`
+}
+
 func PushWiki(wikiSlug string) {
 	accessToken, err := auth.GetToken()
 	if err != nil {
@@ -18,37 +23,58 @@ func PushWiki(wikiSlug string) {
 		return
 	}
 
+	// =========================
+	// 1. サーバー側の slug 一覧取得
+	// =========================
+	resp, err := callAPI("GET", wikiSlug, "", nil, accessToken)
+	if err != nil {
+		colors.RedPrint("Failed to fetch wiki index:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var index wikiIndexResponse
+	if err := json.NewDecoder(resp.Body).Decode(&index); err != nil {
+		colors.RedPrint("Failed to parse wiki index:", err)
+		return
+	}
+
+	serverSlugs := map[string]bool{}
+	for _, s := range index.PageSlugs {
+		serverSlugs[s] = true
+	}
+
+	localSlugs := map[string]bool{}
+
+	// =========================
+	// 2. ローカル → PUT / POST
+	// =========================
 	err = filepath.Walk(wikiSlug, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(info.Name(), ".askr") {
+		if err != nil || info.IsDir() || !strings.HasSuffix(info.Name(), ".askr") {
 			return nil
 		}
 
 		relPath, _ := filepath.Rel(wikiSlug, path)
 		slug := strings.TrimSuffix(relPath, ".askr")
 		slug = filepath.ToSlash(slug)
+		localSlugs[slug] = true
 
 		contentBytes, _ := os.ReadFile(path)
 		lines := strings.SplitN(string(contentBytes), "\n", 2)
 
-		var title string
-		var content string
+		title := slug
+		content := string(contentBytes)
 
-		if len(lines) > 0 && strings.HasPrefix(lines[0], "TITLE:") {
+		if strings.HasPrefix(lines[0], "TITLE:") {
 			title = strings.TrimSpace(strings.TrimPrefix(lines[0], "TITLE:"))
 			if len(lines) > 1 {
-				content = lines[1]
+				content = strings.TrimLeft(lines[1], "\r\n")
 			} else {
 				content = ""
 			}
-		} else {
-			title = slug
-			content = string(contentBytes)
+			if title == "" {
+				title = slug
+			}
 		}
 
 		body := map[string]string{
@@ -56,34 +82,51 @@ func PushWiki(wikiSlug string) {
 			"content": content,
 		}
 
-		resp, err := callAPI("PUT", wikiSlug, slug, body, accessToken)
+		method := "PUT"
+		if !serverSlugs[slug] {
+			method = "POST"
+		}
+
+		resp, err := callAPI(method, wikiSlug, slug, body, accessToken)
 		if err != nil {
-			colors.RedPrint("Failed:", slug, err)
+			colors.RedPrint("❌ Failed:", slug, err)
 			return nil
 		}
 		defer resp.Body.Close()
 
 		data, _ := io.ReadAll(resp.Body)
 		if resp.StatusCode == 200 {
-			if string(data) == "{\"success\":true}" {
-				colors.GreenPrint("✅ Pushed: %s\nsuccess", slug)
-			} else {
-				colors.GreenPrint("✅ Pushed: %s\n%s", slug, string(data))
-			}
+			colors.GreenPrint("✅ %s: %s", method, slug)
 		} else {
-			if string(data) == "{\"error\":\"CLI operations not allowed for this wiki\"}" {
-				colors.RedPrint("❌ Failed to push: %s\nCLI operations not allowed for this wiki", slug)
-			} else if string(data) == "{\"error\":\"Not authorized to edit\"}" {
-				colors.RedPrintText("❌ Failed to push: ログインして下さい")
-				colors.RedPrintText("13ninアカウントをお持ちでない場合は\nこちらから作成して下さい\nhttps://asakura-wiki.vercel.app/login/13nin/signup")
-			} else {
-				colors.RedPrint("❌ Failed to push: %s\n%s", slug, string(data))
-			}
+			colors.RedPrint("❌ Failed: %s\n%s", slug, string(data))
 		}
+
 		return nil
 	})
 
 	if err != nil {
 		colors.RedPrint("Push walk error:", err)
+		return
+	}
+
+	// =========================
+	// 3. DELETE（ローカルに無いページ）
+	// =========================
+	for slug := range serverSlugs {
+		if slug == "FrontPage" {
+			continue
+		}
+		if localSlugs[slug] {
+			continue
+		}
+
+		resp, err := callAPI("DELETE", wikiSlug, slug, nil, accessToken)
+		if err != nil {
+			colors.RedPrint("❌ Delete failed:", slug, err)
+			continue
+		}
+		resp.Body.Close()
+
+		colors.GreenPrint("🗑 Deleted: %s", slug)
 	}
 }
