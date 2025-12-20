@@ -44,7 +44,6 @@ func callAPIWikis(accessToken string) ([]string, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	// ステータスコードチェック
 	if resp.StatusCode != http.StatusOK {
 		return nil, err
@@ -162,6 +161,7 @@ func CloneWikis() {
 	resp, err := callAPIWikis(accessToken)
 	if err != nil {
 		colors.RedPrint("APIError: %s", err)
+		return
 	}
 	if len(resp) == 0 {
 		colors.RedPrintText("Error: respLength is 0")
