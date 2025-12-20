@@ -21,20 +21,24 @@ func Execute() {
 
 	switch cmd {
 	case "clone":
-		if len(os.Args) < 3 {
+		if len(os.Args) != 3 {
 			colors.RedPrintText("Usage: askreditor clone <wikiSlug>")
 			return
 		}
 		wiki.CloneWiki(os.Args[2])
-
+	case "cloneall":
+		if len(os.Args) != 2 {
+			colors.RedPrintText("Usage askreditor cloneall")
+		}
+		wiki.CloneWikis()
 	case "push":
-		if len(os.Args) < 3 {
+		if len(os.Args) != 3 {
 			colors.RedPrintText("Usage: askreditor push <wikiSlug>")
 			return
 		}
 		PushWiki(os.Args[2])
 	case "login":
-		if len(os.Args) < 4 {
+		if len(os.Args) != 4 {
 			colors.RedPrintText("Usage: askreditor login <email> <password>")
 			return
 		}

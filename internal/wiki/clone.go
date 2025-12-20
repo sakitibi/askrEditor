@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/sakitibi/askrEditor/internal/auth"
 	"github.com/sakitibi/askrEditor/internal/colors"
@@ -20,10 +21,27 @@ type Page struct {
 }
 
 func callAPIWikis(accessToken string) ([]string, error) {
-	url := "https://asakura-wiki.vercel.app/wikis"
+	apiURL := "https://asakura-wiki.vercel.app/wikis"
+	// HTTPクライアント（タイムアウト設定）
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 
-	// HTTP GETリクエスト
-	resp, err := http.Get(url)
+	// リクエスト作成
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// X-Cli ヘッダを追加
+	req.Header.Set("X-CLI", "true")
+	if accessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	// API呼び出し
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -34,18 +52,18 @@ func callAPIWikis(accessToken string) ([]string, error) {
 		return nil, err
 	}
 
-	// レスポンスボディ読み込み
+	// レスポンス読み込み
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	// JSON → []string に変換
-	var data []string
-	if err := json.Unmarshal(body, &data); err != nil {
+	var result []string
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
-	return data, nil
+	return result, nil
 }
 
 // savePage は page を wikiSlug/slug.askr に保存
@@ -137,7 +155,12 @@ func CloneWiki(wikiSlug string) {
 }
 
 // CloneWiki は wikiSlug を指定して全ページをローカルに保存
-func CloneWikis(accessToken string) {
+func CloneWikis() {
+	accessToken, err := auth.GetToken()
+	if err != nil {
+		colors.RedPrint("❌", err)
+		return
+	}
 	resp, err := callAPIWikis(accessToken)
 	if err != nil {
 		colors.RedPrint("APIError: %s", err)
