@@ -33,8 +33,6 @@ func callAPIWikis(accessToken string) ([]string, error) {
 		return nil, err
 	}
 
-	// X-Cli ヘッダを追加
-	req.Header.Set("X-CLI", "true")
 	if accessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 	}

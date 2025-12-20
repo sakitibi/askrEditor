@@ -13,7 +13,7 @@ import (
 
 func Execute() {
 	if len(os.Args) < 2 {
-		colors.RedPrintText("Usage: askreditor <clone|push|login|version> ...")
+		colors.RedPrintText("Usage: askreditor <clone|cloneall|push|login|version> ...")
 		return
 	}
 
