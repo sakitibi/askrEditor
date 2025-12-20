@@ -164,26 +164,6 @@ func CloneWikis() {
 		colors.RedPrint("APIError: %s", err)
 	}
 	for _, wikiSlug := range resp {
-		slugs, err := fetchSlugs(wikiSlug)
-		if err != nil {
-			colors.RedPrint("Failed to fetch slug list: %s", err)
-			return
-		}
-		if len(slugs) == 0 {
-			colors.RedPrint("%s is Not defined", wikiSlug)
-			return
-		}
-		for _, slug := range slugs {
-			page, err := fetchPage(wikiSlug, slug)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			if err := savePage(*page); err != nil {
-				colors.RedPrint("Failed to save page: %s", err)
-				continue
-			}
-			colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
-		}
+		CloneWiki(wikiSlug)
 	}
 }
