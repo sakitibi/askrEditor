@@ -163,6 +163,10 @@ func CloneWikis() {
 	if err != nil {
 		colors.RedPrint("APIError: %s", err)
 	}
+	if len(resp) == 0 {
+		colors.RedPrintText("Error: respLength is 0")
+		return
+	}
 	for _, wikiSlug := range resp {
 		CloneWiki(wikiSlug)
 	}
