@@ -47,6 +47,7 @@ func callAPIWikis(accessToken string) ([]string, error) {
 
 	// ステータスコードチェック
 	if resp.StatusCode != http.StatusOK {
+		colors.RedPrint("Error: statusCode: %s", resp.StatusCode)
 		return nil, err
 	}
 
