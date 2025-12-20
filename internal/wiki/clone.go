@@ -19,6 +19,35 @@ type Page struct {
 	Content  string `json:"content"`
 }
 
+func callAPIWikis(accessToken string) ([]string, error) {
+	url := "https://asakura-wiki.vercel.app/wikis"
+
+	// HTTP GETリクエスト
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// ステータスコードチェック
+	if resp.StatusCode != http.StatusOK {
+		return nil, err
+	}
+
+	// レスポンスボディ読み込み
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// JSON → []string に変換
+	var data []string
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
 // savePage は page を wikiSlug/slug.askr に保存
 func savePage(page Page) error {
 	filePath := filepath.Join(page.WikiSlug, page.Slug+".askr")
@@ -104,5 +133,36 @@ func CloneWiki(wikiSlug string) {
 			continue
 		}
 		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+	}
+}
+
+// CloneWiki は wikiSlug を指定して全ページをローカルに保存
+func CloneWikis(accessToken string) {
+	resp, err := callAPIWikis(accessToken)
+	if err != nil {
+		colors.RedPrint("APIError: %s", err)
+	}
+	for _, wikiSlug := range resp {
+		slugs, err := fetchSlugs(wikiSlug)
+		if err != nil {
+			colors.RedPrint("Failed to fetch slug list: %s", err)
+			return
+		}
+		if len(slugs) == 0 {
+			colors.RedPrint("%s is Not defined", wikiSlug)
+			return
+		}
+		for _, slug := range slugs {
+			page, err := fetchPage(wikiSlug, slug)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			if err := savePage(*page); err != nil {
+				colors.RedPrint("Failed to save page: %s", err)
+				continue
+			}
+			colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+		}
 	}
 }
