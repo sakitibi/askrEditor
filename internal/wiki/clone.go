@@ -21,7 +21,7 @@ type Page struct {
 }
 
 func callAPIWikis(accessToken string) ([]string, error) {
-	apiURL := "https://asakura-wiki.vercel.app/wikis"
+	apiURL := "https://asakura-wiki.vercel.app/api/wikis"
 	// HTTPクライアント（タイムアウト設定）
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -47,7 +47,6 @@ func callAPIWikis(accessToken string) ([]string, error) {
 
 	// ステータスコードチェック
 	if resp.StatusCode != http.StatusOK {
-		colors.RedPrint("Error: statusCode: %s", resp.StatusCode)
 		return nil, err
 	}
 
