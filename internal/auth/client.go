@@ -3,8 +3,7 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -57,8 +56,10 @@ func Login(email, password string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("login failed: %s", body)
+		body, _ := io.ReadAll(resp.Body)
+		colors.RedPrint("login failed: %s", body)
+		os.Exit(1)
+		return err
 	}
 
 	// レスポンスを構造体にパース
