@@ -156,15 +156,18 @@ func CloneWikis() {
 	accessToken, err := auth.GetToken()
 	if err != nil {
 		colors.RedPrint("❌", err)
+		os.Exit(1)
 		return
 	}
 	resp, err := callAPIWikis(accessToken)
 	if err != nil {
 		colors.RedPrint("APIError: %s", err)
+		os.Exit(1)
 		return
 	}
 	if len(resp) == 0 {
 		colors.RedPrintText("Error: respLength is 0")
+		os.Exit(1)
 		return
 	}
 	for _, wikiSlug := range resp {

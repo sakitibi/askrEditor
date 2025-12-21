@@ -20,6 +20,7 @@ func PushWiki(wikiSlug string) {
 	accessToken, err := auth.GetToken()
 	if err != nil {
 		colors.RedPrint("❌", err)
+		os.Exit(1)
 		return
 	}
 
@@ -29,6 +30,7 @@ func PushWiki(wikiSlug string) {
 	resp, err := callAPI("GET", wikiSlug, "", nil, accessToken)
 	if err != nil {
 		colors.RedPrint("Failed to fetch wiki index:", err)
+		os.Exit(1)
 		return
 	}
 	defer resp.Body.Close()
@@ -36,6 +38,7 @@ func PushWiki(wikiSlug string) {
 	var index wikiIndexResponse
 	if err := json.NewDecoder(resp.Body).Decode(&index); err != nil {
 		colors.RedPrint("Failed to parse wiki index:", err)
+		os.Exit(1)
 		return
 	}
 
@@ -91,6 +94,7 @@ func PushWiki(wikiSlug string) {
 		resp, err := callAPI(method, wikiSlug, slug, body, accessToken)
 		if err != nil {
 			colors.RedPrint("❌ Failed:", slug, err)
+			os.Exit(1)
 			return nil
 		}
 		defer resp.Body.Close()
@@ -100,6 +104,7 @@ func PushWiki(wikiSlug string) {
 			colors.GreenPrint("✅ %s: %s", method, slug)
 		} else {
 			colors.RedPrint("❌ Failed: %s\n%s", slug, string(data))
+			os.Exit(1)
 		}
 
 		return nil
@@ -107,6 +112,7 @@ func PushWiki(wikiSlug string) {
 
 	if err != nil {
 		colors.RedPrint("Push walk error:", err)
+		os.Exit(1)
 		return
 	}
 
