@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -25,6 +26,11 @@ type LoginResponse struct {
 }
 
 func Login(email, password string) error {
+	// 利用規約確認
+	if err := CheckTerms(); err != nil {
+		return err
+	}
+
 	// Supabase の API エンドポイント
 	url := SupabaseURL + "/auth/v1/token?grant_type=password"
 
@@ -59,7 +65,7 @@ func Login(email, password string) error {
 		body, _ := io.ReadAll(resp.Body)
 		colors.RedPrint("login failed: %s", body)
 		os.Exit(1)
-		return err
+		return fmt.Errorf("login failed")
 	}
 
 	// レスポンスを構造体にパース
