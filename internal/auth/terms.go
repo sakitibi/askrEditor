@@ -17,7 +17,7 @@ func CheckTerms() error {
 	if err != nil {
 		return err
 	}
-	termsFile := filepath.Join(home, "terms_agreed")
+	termsFile := filepath.Join(home, ".terms_agreed")
 
 	// すでに存在する場合は何もしない
 	if _, err := os.Stat(termsFile); err == nil {
