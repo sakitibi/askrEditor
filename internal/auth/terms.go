@@ -2,7 +2,6 @@ package auth
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,7 +40,7 @@ func CheckTerms() error {
 
 	// プロンプト表示
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Do you agree to the terms? (y/n): ")
+	colors.GreenPrintText("Do you agree to the terms? (y/n): ")
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(strings.ToLower(input))
 
