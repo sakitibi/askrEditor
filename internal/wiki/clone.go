@@ -1,6 +1,9 @@
 package wiki
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,17 +20,37 @@ type Page struct {
 	Slug     string `json:"slug"`
 	WikiSlug string `json:"wiki_slug"`
 	Title    string `json:"title"`
-	Content  string `json:"content"`
+	Content  string `json:"content"` // API v2 では Base64(Gzipped) 文字列
+}
+
+// decodeContent は Base64(Gzip) 形式の文字列を元のテキストに復元します
+func decodeContent(encodedStr string) (string, error) {
+	// 1. Base64 デコード
+	compressed, err := base64.StdEncoding.DecodeString(encodedStr)
+	if err != nil {
+		return "", fmt.Errorf("base64 decode error: %w", err)
+	}
+
+	// 2. Gzip 解凍
+	reader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		return "", fmt.Errorf("gzip reader error: %w", err)
+	}
+	defer reader.Close()
+
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to read decompressed data: %w", err)
+	}
+
+	return string(decompressed), nil
 }
 
 func callAPIWikis(accessToken string) ([]string, error) {
+	// エンドポイントを /api/wikis に維持 (Blob一覧取得用)
 	apiURL := "https://asakura-wiki.vercel.app/api/wikis"
-	// HTTPクライアント（タイムアウト設定）
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
+	client := &http.Client{Timeout: 10 * time.Second}
 
-	// リクエスト作成
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return nil, err
@@ -38,47 +61,39 @@ func callAPIWikis(accessToken string) ([]string, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	// API呼び出し
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	// ステータスコードチェック
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, err
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	// レスポンス読み込み
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// JSON → []string に変換
 	var result []string
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-// savePage は page を wikiSlug/slug.askr に保存
 func savePage(page Page) error {
 	filePath := filepath.Join(page.WikiSlug, page.Slug+".askr")
+
+	// ディレクトリを階層ごと作成
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
-	// TITLE 行を追加
 	data := fmt.Sprintf("TITLE:%s\n%s", page.Title, page.Content)
 	return os.WriteFile(filePath, []byte(data), 0644)
 }
 
-// fetchPage は API からページを取得
 func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
-	url := fmt.Sprintf("https://asakura-wiki.vercel.app/api/wiki/%s/%s", wikiSlug, pageSlug)
+	// API v2 の URL 組み立て
+	url := fmt.Sprintf("%s/%s/%s", auth.ApiBaseURL, wikiSlug, pageSlug)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -87,8 +102,7 @@ func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API error %d", resp.StatusCode)
 	}
 
 	var page Page
@@ -96,26 +110,40 @@ func fetchPage(wikiSlug, pageSlug string) (*Page, error) {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
+	// 重要: ここでバイナリをテキストにデコードする
+	rawText, err := decodeContent(page.Content)
+	if err != nil {
+		return nil, fmt.Errorf("decode error for %s: %w", pageSlug, err)
+	}
+	page.Content = rawText
+	page.WikiSlug = wikiSlug
+	page.Slug = pageSlug
+
 	return &page, nil
 }
 
-// fetchSlugs は API から wikiSlug のページ一覧を取得
 func fetchSlugs(wikiSlug string) ([]string, error) {
+	// 叩いているURLを可視化する
 	url := fmt.Sprintf("%s/%s", auth.ApiBaseURL, wikiSlug)
+	fmt.Printf("DEBUG: Fetching slugs from: %s\n", url) // これで404のURLを特定
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch slugs: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode == 404 {
+		// ボディを取得して詳細を確認する
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("API error 404 at %s: %s", url, string(body))
 	}
 
-	// page_slugs を取り出す
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("API error %d", resp.StatusCode)
+	}
+
 	var data struct {
-		WikiSlug  string   `json:"wiki_slug"`
 		PageSlugs []string `json:"page_slugs"`
 	}
 
@@ -126,7 +154,6 @@ func fetchSlugs(wikiSlug string) ([]string, error) {
 	return data.PageSlugs, nil
 }
 
-// CloneWiki は wikiSlug を指定して全ページをローカルに保存
 func CloneWiki(wikiSlug string) {
 	slugs, err := fetchSlugs(wikiSlug)
 	if err != nil {
@@ -134,43 +161,43 @@ func CloneWiki(wikiSlug string) {
 		return
 	}
 	if len(slugs) == 0 {
-		colors.RedPrint("%s is Not defined", wikiSlug)
+		colors.RedPrint("%s has no pages", wikiSlug)
 		return
 	}
 	for _, slug := range slugs {
 		page, err := fetchPage(wikiSlug, slug)
 		if err != nil {
-			fmt.Println(err)
+			colors.RedPrint("Error fetching %s: %v", slug, err)
 			continue
 		}
 		if err := savePage(*page); err != nil {
-			colors.RedPrint("Failed to save page: %s", err)
+			colors.RedPrint("Failed to save page %s: %v", slug, err)
 			continue
 		}
-		colors.GreenPrint("✅ Saved %s/%s.askr\n", page.WikiSlug, page.Slug)
+		colors.GreenPrint("✅ Saved %s/%s.askr\n", wikiSlug, slug)
 	}
 }
 
-// CloneWiki は wikiSlug を指定して全ページをローカルに保存
 func CloneWikis() {
-	accessToken, err := auth.GetToken()
+	accessToken, err := auth.GetToken() // internal/auth の実装に合わせて GetAccessToken 等に適宜変更
 	if err != nil {
-		colors.RedPrint("❌", err)
+		colors.RedPrint("Auth Error: %v", err)
 		os.Exit(1)
-		return
 	}
+
 	resp, err := callAPIWikis(accessToken)
 	if err != nil {
-		colors.RedPrint("APIError: %s", err)
+		colors.RedPrint("API Error: %s", err)
 		os.Exit(1)
-		return
 	}
+
 	if len(resp) == 0 {
-		colors.RedPrintText("Error: respLength is 0")
-		os.Exit(1)
+		colors.RedPrintText("No wikis found in Blob storage.")
 		return
 	}
+
 	for _, wikiSlug := range resp {
+		colors.GreenPrint("Cloning Wiki: %s...", wikiSlug)
 		CloneWiki(wikiSlug)
 	}
 }

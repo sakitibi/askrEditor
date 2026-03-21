@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
-// API から取得する slug 一覧用
 type wikiIndexResponse struct {
 	PageSlugs []string `json:"page_slugs"`
 }
@@ -19,14 +19,12 @@ type wikiIndexResponse struct {
 func PushWiki(wikiSlug string) {
 	accessToken, err := auth.GetToken()
 	if err != nil {
-		colors.RedPrint("❌", err)
+		colors.RedPrint("❌ Auth Error:", err)
 		os.Exit(1)
 		return
 	}
 
-	// =========================
-	// 1. サーバー側の slug 一覧取得
-	// =========================
+	// 1. サーバー側の slug 一覧取得（差分チェック用）
 	resp, err := callAPI("GET", wikiSlug, "", nil, accessToken)
 	if err != nil {
 		colors.RedPrint("Failed to fetch wiki index:", err)
@@ -49,34 +47,46 @@ func PushWiki(wikiSlug string) {
 
 	localSlugs := map[string]bool{}
 
-	// =========================
-	// 2. ローカル → PUT / POST
-	// =========================
+	// 2. ローカルファイルの走査とアップロード
 	err = filepath.Walk(wikiSlug, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(info.Name(), ".askr") {
+		if err != nil {
+			return err
+		}
+		// ディレクトリ自体や .askr 以外はスキップ
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".askr") {
 			return nil
 		}
 
-		relPath, _ := filepath.Rel(wikiSlug, path)
+		// 相対パスを取得 (例: wikiSlug/folder/sub.askr -> folder/sub.askr)
+		relPath, err := filepath.Rel(wikiSlug, path)
+		if err != nil {
+			return err
+		}
+
+		// 拡張子を除去し、OS固有の区切り文字を "/" に統一 (ネスト対策)
 		slug := strings.TrimSuffix(relPath, ".askr")
 		slug = filepath.ToSlash(slug)
 		localSlugs[slug] = true
 
-		contentBytes, _ := os.ReadFile(path)
-		lines := strings.SplitN(string(contentBytes), "\n", 2)
+		// ファイル読み込み
+		contentBytes, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
 
+		rawText := string(contentBytes)
 		title := slug
-		content := string(contentBytes)
+		content := rawText
 
-		if strings.HasPrefix(lines[0], "TITLE:") {
+		// TITLE: 行の抽出ロジック
+		if strings.HasPrefix(rawText, "TITLE:") {
+			lines := strings.SplitN(rawText, "\n", 2)
 			title = strings.TrimSpace(strings.TrimPrefix(lines[0], "TITLE:"))
 			if len(lines) > 1 {
+				// 2行目以降（コンテンツ本体）から先頭の空行を除去
 				content = strings.TrimLeft(lines[1], "\r\n")
 			} else {
 				content = ""
-			}
-			if title == "" {
-				title = slug
 			}
 		}
 
@@ -86,6 +96,7 @@ func PushWiki(wikiSlug string) {
 			"content": content,
 		}
 
+		// 新規作成か更新かを判定
 		method := "PUT"
 		if !serverSlugs[slug] {
 			method = "POST"
@@ -93,47 +104,41 @@ func PushWiki(wikiSlug string) {
 
 		resp, err := callAPI(method, wikiSlug, slug, body, accessToken)
 		if err != nil {
-			colors.RedPrint("❌ Failed:", slug, err)
-			os.Exit(1)
-			return nil
+			return fmt.Errorf("API call failed for %s: %w", slug, err)
 		}
 		defer resp.Body.Close()
 
-		data, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode == 200 {
-			colors.GreenPrint("✅ %s: %s", method, slug)
-		} else {
-			colors.RedPrint("❌ Failed: %s\n%s", slug, string(data))
-			os.Exit(1)
+		if resp.StatusCode != 200 {
+			data, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("server error (%d) for %s: %s", resp.StatusCode, slug, string(data))
 		}
 
+		colors.GreenPrint("✅ [%s] %s", method, slug)
 		return nil
 	})
 
 	if err != nil {
-		colors.RedPrint("Push walk error:", err)
+		colors.RedPrint("❌ Push failed:", err)
 		os.Exit(1)
 		return
 	}
 
-	// =========================
-	// 3. DELETE（ローカルに無いページ）
-	// =========================
+	// 3. 削除処理（ローカルに存在しないがサーバーにあるものを消す）
 	for slug := range serverSlugs {
-		if slug == "FrontPage" {
-			continue
-		}
-		if localSlugs[slug] {
+		// FrontPage は保護
+		if slug == "FrontPage" || localSlugs[slug] {
 			continue
 		}
 
 		resp, err := callAPI("DELETE", wikiSlug, slug, nil, accessToken)
 		if err != nil {
-			colors.RedPrint("❌ Delete failed:", slug, err)
+			colors.RedPrint("⚠️ Delete failed:", slug, err)
 			continue
 		}
 		resp.Body.Close()
 
-		colors.GreenPrint("🗑 Deleted: %s", slug)
+		if resp.StatusCode == 200 {
+			colors.GreenPrint("🗑 Deleted: %s", slug)
+		}
 	}
 }

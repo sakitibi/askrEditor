@@ -12,7 +12,7 @@ import (
 	"github.com/sakitibi/askrEditor/internal/colors"
 )
 
-const ApiBaseURL = "https://asakura-wiki.vercel.app/api/wiki"
+const ApiBaseURL = "https://asakura-wiki.vercel.app/api/wiki_v2"
 
 type LoginResponse struct {
 	AccessToken  string `json:"access_token"`

@@ -4,20 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
 
 	"github.com/sakitibi/askrEditor/internal/auth"
 )
 
+// callAPI は Vercel Blob ベースの新しい Wiki API (v2) を呼び出します
 func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessToken string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s/%s", auth.ApiBaseURL, wikiSlug, pageSlug)
 
-	var reqBody *bytes.Reader
+	var reqBody io.Reader
 	if body != nil {
-		jsonData, _ := json.Marshal(body)
-		reqBody = bytes.NewReader(jsonData)
-	} else {
-		reqBody = bytes.NewReader([]byte{})
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal body: %w", err)
+		}
+		reqBody = bytes.NewBuffer(jsonData)
 	}
 
 	req, err := http.NewRequest(method, url, reqBody)
@@ -25,12 +29,19 @@ func callAPI(method, wikiSlug, pageSlug string, body map[string]string, accessTo
 		return nil, err
 	}
 
+	// ヘッダー設定
 	req.Header.Set("Content-Type", "application/json")
 	if accessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 	}
-	// CLI 用ヘッダ
+
+	// サーバー側で CLI からのアクセスを判別するためのカスタムヘッダー
 	req.Header.Set("X-CLI", "true")
 
-	return http.DefaultClient.Do(req)
+	// タイムアウトを設定したクライアントを使用することを推奨します
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	return client.Do(req)
 }
