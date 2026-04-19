@@ -1,6 +1,6 @@
 module github.com/sakitibi/askrEditor
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/fatih/color v1.18.0 // indirect
@@ -18,4 +18,5 @@ require (
 	github.com/supabase-community/supabase-go v0.0.4 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 )

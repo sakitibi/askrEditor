@@ -10,6 +10,7 @@ import (
 
 	"github.com/sakitibi/askrEditor/internal/auth"
 	"github.com/sakitibi/askrEditor/internal/colors"
+	"golang.org/x/text/unicode/norm"
 )
 
 type wikiIndexResponse struct {
@@ -66,6 +67,10 @@ func PushWiki(wikiSlug string) {
 		// 拡張子を除去し、OS固有の区切り文字を "/" に統一 (ネスト対策)
 		slug := strings.TrimSuffix(relPath, ".askr")
 		slug = filepath.ToSlash(slug)
+
+		// ★ ここで NFC に正規化
+		slug = norm.NFC.String(slug)
+
 		localSlugs[slug] = true
 
 		// ファイル読み込み
