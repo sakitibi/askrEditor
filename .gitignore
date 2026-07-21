@@ -1,0 +1,8 @@
+.DS_Store
+.vscode
+env.go
+*.gz
+*.zip
+*.exe
+askreditor
+tap
