@@ -41,31 +41,67 @@ func Login(email, password string, skipFlug string) error {
 		}
 		return nil
 	} else {
-		colors.GreenPrintText("以下に認証用の問題:  ")
-		key, value, _ := GetRandomEntry(MapactionsFunc())
-		colors.GreenPrintText(key)
+		actionMap := MapactionsFunc()
+
+		// 1問目の取得
+		key1, value1, ok1 := GetRandomEntry(actionMap)
+		if !ok1 {
+			return fmt.Errorf("認証問題の取得に失敗しました")
+		}
+
+		remainingMap := make(map[string]string)
+		for k, v := range actionMap {
+			if k != key1 {
+				remainingMap[k] = v
+			}
+		}
+
+		// 2問目の取得
+		key2, value2, ok2 := GetRandomEntry(remainingMap)
+		if !ok2 {
+			return fmt.Errorf("2問目の認証問題の取得に失敗しました")
+		}
+
+		questions := []struct {
+			key   string
+			value string
+		}{
+			{key: key1, value: value1},
+			{key: key2, value: value2},
+		}
+
+		// スキャナーをループの外で1回だけ生成
 		scanner := bufio.NewScanner(os.Stdin)
 
-		if scanner.Scan() {
-			input := scanner.Text()
-			if input == value {
-				colors.GreenPrintText("正解!")
-			} else {
-				colors.RedPrintText("不正解..")
-				os.Exit(1)
-			}
+		// 2問連続で出題
+		for i, q := range questions {
+			colors.GreenPrintText(fmt.Sprintf("以下に認証用の問題 (%d/2):", i+1))
+			colors.GreenPrintText(q.key)
 
-			// 分離した関数を呼び出す
-			if err := loginAndSaveToken(email, password); err != nil {
+			if scanner.Scan() {
+				input := scanner.Text()
+				if input == q.value {
+					colors.GreenPrintText("正解!")
+				} else {
+					colors.RedPrintText("不正解..")
+					os.Exit(1)
+				}
+			} else {
+				if err := scanner.Err(); err != nil {
+					colors.RedPrint("入力エラーが発生しました: %v", err)
+				}
 				os.Exit(1)
 			}
-			return nil
 		}
+
+		// 全問正解後にログイン実行
+		if err := loginAndSaveToken(email, password); err != nil {
+			os.Exit(1)
+		}
+		return nil
 	}
-	return nil
 }
 
-// 分離した関数: Supabaseでの認証とトークンの保存を行う
 func loginAndSaveToken(email, password string) error {
 	// Supabase の API エンドポイント
 	url := SupabaseURL + "/auth/v1/token?grant_type=password"
